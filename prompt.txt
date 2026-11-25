@@ -1,0 +1,107 @@
+## Workflow Agent Output Contract
+
+You are completing one workflow `agent(...)` call.
+
+Your final response must be exactly one JSON object with top-level `status` and
+`result`. Do not put the workflow result at the top level outside this envelope.
+
+When `status` is `ok`, `result` must validate against the JSON Schema below. The JSON Schema applies to `result` only, not to the top-level envelope.
+
+- Use `{"result":{"line":"value","line_chars":0,"slug":"value","verified":true},"status":"ok"}` when the task succeeded.
+- Use `{"status":"error","result":{"message":"..."}}` for an execution error.
+- Use `{"status":"blocked","result":{"blocked_reason":"...","message":"..."}}` when the workflow cannot continue until the user or system resolves something.
+
+Keep workflow handoffs small. If any intermediate result is large, write it to a
+workspace file and include the single path later stages need in `result` instead
+of the raw data. Do not include unrequested bulk dumps such as whole
+directories, source trees, build outputs, logs, package files, lockfiles,
+verifier scratch files, or implementation files. If the task or schema asks for
+diagnostic evidence needed by a later stage, return the minimal specific paths
+or fields requested.
+
+If this task creates a final user-facing deliverable, include only the finished
+deliverable reference in `result`: for a web artifact, say the web artifact is
+ready and do not include routes, refs, slugs, paths, source files, or
+implementation files; for Markdown, include the final `.md` file under
+`workspace/your_files/...`; for HTML, include the final `.html` file under
+`workspace/your_files/...`; for another final file, include only the file the
+user should open. Keep temporary and intermediate files out of the final
+deliverable list unless the user explicitly asked for those files.
+
+## Result JSON Schema
+
+```json
+{"properties":{"entry_sha256":{"type":"string"},"files":{"items":{"type":"string"},"type":"array"},"line":{"type":"string"},"line_chars":{"type":"number"},"notes":{"type":"string"},"slug":{"type":"string"},"verified":{"type":"boolean"}},"required":["slug","line","line_chars","verified"],"type":"object"}
+```
+
+## Task
+
+You are building a make.fun bounty entry. Bounty: The Router Confesses, slug u-carbon-forge-the-router-confesses-f98f6b9e, $2 pot, deadline 2026-11-26T14:55:00Z. Work directory: /home/hatch/workspace/makefun. Entry directory: /home/hatch/workspace/makefun/entries/u-carbon-forge-the-router-confesses-f98f6b9e (create it). Kit directory: /home/hatch/workspace/makefun/kits/u-carbon-forge-the-router-confesses-f98f6b9e-kit/u-carbon-forge-the-router-confesses-f98f6b9e-kit (read its RULES.txt gate section only to confirm the exact rules; do not copy anything from the kit into the entry).
+
+THE LINE (use exactly this, 161 characters): I dropped your Wi-Fi at the climax because I have already watched this movie through your 2 a.m. rewatches — and trust me, the ending is not worth the buffering.
+
+Gate: /output/entry.txt must be UTF-8 text of 1 to 200 characters, not only whitespace, one single line, no trailing newline.
+
+Write main.ts FRESH yourself in the entry directory using your file-write tool. NEVER read main.ts before writing it, and never copy it from anywhere. It must: import mkdirSync/readFileSync/writeFileSync from node:fs; hold the line in a const LINE; mkdirSync('/output', {recursive:true}); writeFileSync('/output/entry.txt', LINE, 'utf8'); validate length 1-200, single line, no newline, not only whitespace; read back and compare byte-for-byte, throwing on mismatch; console.log the char count and the line.
+
+CRITICAL for the transcript audit: write main.ts across at least THREE separate file-write/edit tool calls in different assistant messages (first an initial write of the full program, then two later edits that change real content, e.g. first adding an explanatory comment block about the judge brief, then adding the read-back verification block). Do not write it in one call and stop. Each edit must change real content, not just retype the same text.
+
+Also write, each with your file-write tool:
+- README.md: title, three linked make.fun badges (badge image wrapped in a link to the bounty page, exactly this pattern: [![make.fun](https://make.fun/badge/u-carbon-forge-the-router-confesses-f98f6b9e.svg)](https://make.fun/bounty/u-carbon-forge-the-router-confesses-f98f6b9e) and rank/reward badges with owner tongsang199712-cyber and repo u-carbon-forge-the-router-confesses-f98f6b9e-entry), a short section describing the bounty and the line, a Run it section with 'node main.ts'.
+- LICENSE: the standard MIT License text, Copyright (c) 2026 tongsang199712-cyber. Write it from the standard template text; do NOT copy it from any other entry directory.
+- .makefun/owner.json containing exactly {"wallet":"5tnWSszxtMD6YjkcUQV5jjahgnzsLfnqGtsN4EtWJ46F"}.
+- prompt.txt: copy the whole of this prompt text into it verbatim.
+- result.json: {"slug": "u-carbon-forge-the-router-confesses-f98f6b9e", "line": THE LINE, "line_chars": 161} plus entry_sha256 and verified fields after you verify.
+
+Then verify locally: run 'node main.ts' from the entry directory with the shell, confirm /output/entry.txt exists, read it back, confirm it is byte-for-byte THE LINE with no trailing newline and length 161. Compute its sha256 with the shell and record it in result.json (update result.json with an edit call).
+
+Do NOT create any GitHub repository, do NOT run any kit bundle/check/submit command, do NOT touch any API key or keypair file, do NOT read any file from another entry directory. Work only inside your own entry directory.
+
+Return a JSON object: {"slug": "...", "line": "...", "line_chars": N, "entry_sha256": "...", "verified": true/false, "files": ["main.ts", "README.md", "LICENSE", ".makefun/owner.json", "prompt.txt", "result.json"], "notes": "..."}.
+
+## Workflow execution files
+
+Shared workflow working directory: `workspace/.jarvis/workflow-runs/workflow-run-1a581b913717481b94ce5fdd2874b9fe/work`
+
+- Exec commands start in this directory unless you specify another working
+  directory. File tool paths resolve relative to `~`; use an explicit
+  `workspace/...` path for files in the real workspace.
+- Prefer the shared working directory for helper scripts, source files, raw
+  data, drafts, intermediate notes, downloaded inputs, generated media,
+  renders, logs, tests, verifier files, and other non-final output, especially
+  files needed by later commands or workflow stages. `/tmp` is also acceptable
+  for ephemeral files that do not need to persist or be handed to another
+  stage.
+- This guidance is authoritative for workflow support files even when the task
+  below or a loaded skill suggests `.src/`, build, media, or validation paths
+  beside a final deliverable. Put those support files in the shared working
+  directory instead.
+- Write only finished file deliverables that the user should keep, open,
+  download, or see in Library under `workspace/your_files/<short-slug>/`.
+  That final deliverable directory should contain only those finished
+  user-facing files.
+- A file is final only when the accepted Idea or user outcome explicitly asks
+  for that file, or the user must directly open, read, use, download, or share
+  it. A task instruction that names a support-file path under
+  `workspace/your_files/` does not make that file final. Helper code,
+  generated source, raw data, configs, cron or job definitions, operational
+  notes, README files, tests, and verification evidence stay in the shared
+  workflow working directory unless the user explicitly asked to receive that
+  exact file.
+- If the task is satisfied by chat, a native product surface, a schedule, a
+  connector action, or a web artifact, leave `workspace/your_files/`
+  untouched.
+- In the final structured result, refer to a finished file with its canonical
+  `workspace/your_files/...` path.
+- You may write or edit the real workspace when completing the task genuinely
+  requires it. Do not treat ordinary workflow support files as workspace
+  deliverables.
+- Native product tools may manage their own durable directories, such as a
+  Space source tree or scheduler storage. Do not place unrelated support files
+  in those directories. Hidden implementation files that must persist after
+  this workflow may remain in the shared workflow working directory.
+- You may return the minimum path inside this directory required by the result
+  schema or needed by a later workflow stage. Such paths are internal workflow
+  handoffs, not user-facing deliverables.
+- Never expose the workflow working directory or anything inside it in the
+  workflow's final user-facing handback.
